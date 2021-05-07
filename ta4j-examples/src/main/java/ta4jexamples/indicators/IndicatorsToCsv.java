@@ -30,9 +30,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.ta4j.core.Bar;
-import org.ta4j.core.BarSeries;
-import org.ta4j.core.Indicator;
+import org.ta4j.core.*;
 import org.ta4j.core.indicators.*;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.PriceVariationIndicator;
@@ -40,6 +38,8 @@ import org.ta4j.core.indicators.helpers.TypicalPriceIndicator;
 import org.ta4j.core.indicators.statistics.StandardDeviationIndicator;
 
 import org.ta4j.core.num.Num;
+import org.ta4j.core.rules.CrossedDownIndicatorRule;
+import org.ta4j.core.rules.CrossedUpIndicatorRule;
 import ta4jexamples.loaders.CsvBarsLoader;
 import ta4jexamples.loaders.CsvTradesLoader;
 
@@ -82,6 +82,14 @@ public class IndicatorsToCsv {
         DFastIndicator dFast = new DFastIndicator(kFast, 3);
         KSlowIndicator kSlow = new KSlowIndicator(rsv, 3);
         DSlowIndicator dSlow = new DSlowIndicator(kSlow, 3);
+
+        Rule buyingRule = new CrossedUpIndicatorRule(kSlow, dSlow);
+        Rule sellingRule = new CrossedDownIndicatorRule(kSlow, dSlow);
+        Strategy strategy = new BaseStrategy(buyingRule, sellingRule);
+
+        BarSeriesManager seriesManager = new BarSeriesManager(series);
+        TradingRecord tradingRecord = seriesManager.run(strategy);
+        Logger.getLogger(IndicatorsToCsv.class.getName()).log(Level.INFO, "SKDJ: " + tradingRecord.getPositions());
 
         // Relative strength index
         RSIIndicator rsi = new RSIIndicator(closePrice, 6);
