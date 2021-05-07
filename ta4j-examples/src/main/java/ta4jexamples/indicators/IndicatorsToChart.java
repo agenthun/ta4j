@@ -114,14 +114,14 @@ public class IndicatorsToChart {
          * Building chart dataset
          */
         TimeSeriesCollection dataset = new TimeSeriesCollection();
-        dataset.addSeries(buildChartBarSeries(series, closePrice, "Apple Inc. (AAPL) - NASDAQ GS"));
+        dataset.addSeries(buildChartBarSeries(series, closePrice, series.getName()));
         dataset.addSeries(buildChartBarSeries(series, lowBBand, "Low Bollinger Band"));
         dataset.addSeries(buildChartBarSeries(series, upBBand, "High Bollinger Band"));
 
         /*
          * Creating the chart
          */
-        JFreeChart chart = ChartFactory.createTimeSeriesChart("Apple Inc. 2013 Close Prices", // title
+        JFreeChart chart = ChartFactory.createTimeSeriesChart(series.getName(), // title
                 "Date", // x-axis label
                 "Price Per Unit", // y-axis label
                 dataset, // data
