@@ -27,10 +27,12 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.ta4j.core.*;
+import org.ta4j.core.analysis.criteria.pnl.AverageProfitCriterion;
 import org.ta4j.core.indicators.*;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.indicators.helpers.PriceVariationIndicator;
@@ -41,7 +43,6 @@ import org.ta4j.core.num.Num;
 import org.ta4j.core.rules.CrossedDownIndicatorRule;
 import org.ta4j.core.rules.CrossedUpIndicatorRule;
 import ta4jexamples.loaders.CsvBarsLoader;
-import ta4jexamples.loaders.CsvTradesLoader;
 
 /**
  * This class builds a CSV file containing values from indicators.
@@ -74,8 +75,9 @@ public class IndicatorsToCsv {
         PPOIndicator ppo = new PPOIndicator(closePrice, 12, 26);
         // Rate of change
         ROCIndicator roc = new ROCIndicator(closePrice, 100);
-
-        Indicator<Num> macd = new MACDIndicator(closePrice);
+        // Relative strength index
+        RSIIndicator rsi = new RSIIndicator(closePrice, 6);
+        MACDIndicator macd = new MACDIndicator(closePrice);
 
         StochasticOscillatorKIndicator rsv = new StochasticOscillatorKIndicator(series, 9);
         KFastIndicator kFast = new KFastIndicator(rsv, 3);
@@ -85,14 +87,17 @@ public class IndicatorsToCsv {
 
         Rule buyingRule = new CrossedUpIndicatorRule(kSlow, dSlow);
         Rule sellingRule = new CrossedDownIndicatorRule(kSlow, dSlow);
-        Strategy strategy = new BaseStrategy(buyingRule, sellingRule);
+        Strategy strategySKDJ = new BaseStrategy("SKDJ", buyingRule, sellingRule);
+        Strategy strategyKDJ = new BaseStrategy("KDJ", new CrossedUpIndicatorRule(kFast, dFast), new CrossedDownIndicatorRule(kFast, dFast));
+        Strategy strategyRSI = new BaseStrategy("RSI", new CrossedDownIndicatorRule(rsi, 20), new CrossedUpIndicatorRule(rsi, 80));
 
         BarSeriesManager seriesManager = new BarSeriesManager(series);
-        TradingRecord tradingRecord = seriesManager.run(strategy);
-        Logger.getLogger(IndicatorsToCsv.class.getName()).log(Level.INFO, "SKDJ: " + tradingRecord.getPositions());
+        AnalysisCriterion criterion = new AverageProfitCriterion();
+        Strategy strategyBest = criterion.chooseBest(seriesManager, Arrays.asList(strategySKDJ, strategyKDJ, strategyRSI));
+        TradingRecord tradingRecord = seriesManager.run(strategyBest);
+        Logger.getLogger(IndicatorsToCsv.class.getName()).log(Level.INFO, strategyBest.getName() + ": " + tradingRecord.getLastEntry());
 
-        // Relative strength index
-        RSIIndicator rsi = new RSIIndicator(closePrice, 6);
+
         // Williams %R
         WilliamsRIndicator williamsR = new WilliamsRIndicator(series, 20);
         // Average true range
@@ -114,6 +119,8 @@ public class IndicatorsToCsv {
             Num k2 = kSlow.getValue(i);
             Num d2 = dSlow.getValue(i);
             sbLog.append("[").append(item.getSimpleDateName()).append("] ")
+                    .append("[").append(i).append("] ")
+                    .append(series.getBar(i).getClosePrice()).append(", ")
                     .append(k).append(", ").append(d)
                     .append(" | ").append(k2).append(", ").append(d2)
                     .append("\n");
